@@ -1,110 +1,105 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.sql.*;
+//     To run the code    javac -cp ".;libs\mysql-connector-j-9.5.0.jar" JDBC_demo.java
+public class JDBC_demo extends JFrame implements ActionListener {
 
-public class StudentCRUDMySQLNew extends JFrame{
-    JTextField txtid,txtname,txtcourse;
-    JButton btninsert ,btnupdate,btndelete,btnclear;
-    
+    // Components
+    JLabel lblId, lblName, lblEmail;
+    JTextField txtId, txtName, txtEmail;
+    JButton btnInsert, btnUpdate, btnDelete;
+
+    // Database connection
     Connection con;
-    PreparedStatement ps;
-    
-    public StudentCRUDMySQLNew(){
-        setTitle("CRUD");
-        setSize(450,300);
-        setLayout(new GridLayout(5,2,10,10));
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-        
-        add(new JLabel("student id"));
-        txtid=new JTextField();add(txtid);
-        
-        add(new JLabel("student name"));
-        txtname=new JTextField();add(txtname);
-        
-        add(new JLabel("student course"));
-        txtcourse=new JTextField();add(txtcourse);
-        
-        btninsert = new JButton("insert");add(btninsert);
-        btnupdate = new JButton("update");add(btnupdate);
-        btndelete = new JButton("delete");add(btndelete);
-        btnclear = new JButton("clear");add(btnclear);
-     
-        connectMySQL();
-        
-        btninsert.addActionListener(e -> insertRecord());
-        btnupdate.addActionListener(e -> updateRecord());
-        btndelete.addActionListener(e -> deleteRecord());
-        btnclear.addActionListener(e -> clearRecord());
-        
-    }
-    void connectMySQL(){
-        try{
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            con=DriverManager.getConnection(
-            "jdbc:mysql://localhost:3306/studentdb","root","admin");
-            JOptionPane.showMessageDialog(this,"Connection successful");
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this,"db error:"+ e.getMessage());
+
+    JDBC_demo() {
+        setTitle("JDBC Swing CRUD Example");
+        setSize(400, 300);
+        setLayout(new GridLayout(5, 2, 10, 10));
+
+        // Labels
+        lblId = new JLabel("ID:");
+        lblName = new JLabel("Name:");
+        lblEmail = new JLabel("Email:");
+
+        // TextFields
+        txtId = new JTextField();
+        txtName = new JTextField();
+        txtEmail = new JTextField();
+
+        // Buttons
+        btnInsert = new JButton("Insert");
+        btnUpdate = new JButton("Update");
+        btnDelete = new JButton("Delete");
+
+        // Add components
+        add(lblId); add(txtId);
+        add(lblName); add(txtName);
+        add(lblEmail); add(txtEmail);
+        add(btnInsert); add(btnUpdate); add(btnDelete);
+
+        // Add ActionListener
+        btnInsert.addActionListener(this);
+        btnUpdate.addActionListener(this);
+        btnDelete.addActionListener(this);
+
+        // Connect to Database
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver"); // MySQL JDBC Driver
+            con = DriverManager.getConnection(
+                    "jdbc:mysql://localhost:4040/testdb", "root", "root"); // change username/password
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "DB Connection Failed: " + e.getMessage());
         }
-        
+
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
     }
-    
-    void insertRecord(){
-        try{
-            ps=con.prepareStatement("Insert into student_record (id,name,course) values(?,?,?)");
-            ps.setInt(1,Integer.parseInt(txtid.getText()));
-            ps.setString(2,(txtname.getText()));
-            ps.setString(3,(txtcourse.getText()));
-            
-            ps.executeUpdate();
-            JOptionPane.showMessageDialog(this,"Inserted");
-            clearRecord();
-            
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this,"db error:"+ e.getMessage());
+
+    public void actionPerformed(ActionEvent e) {
+        int id = Integer.parseInt(txtId.getText());
+        String name = txtName.getText();
+        String email = txtEmail.getText();
+
+        try {
+            PreparedStatement ps;
+
+            if (e.getSource() == btnInsert) {
+                ps = con.prepareStatement("INSERT INTO students (id, name, email) VALUES (?, ?, ?)");
+                ps.setInt(1, id);
+                ps.setString(2, name);
+                ps.setString(3, email);
+                ps.executeUpdate();
+                JOptionPane.showMessageDialog(this, "Record Inserted");
+
+            } else if (e.getSource() == btnUpdate) {
+                ps = con.prepareStatement("UPDATE students SET name=?, email=? WHERE id=?");
+                ps.setString(1, name);
+                ps.setString(2, email);
+                ps.setInt(3, id);
+                int rows = ps.executeUpdate();
+                if (rows > 0)
+                    JOptionPane.showMessageDialog(this, "Record Updated");
+                else
+                    JOptionPane.showMessageDialog(this, "ID not found");
+
+            } else if (e.getSource() == btnDelete) {
+                ps = con.prepareStatement("DELETE FROM students WHERE id=?");
+                ps.setInt(1, id);
+                int rows = ps.executeUpdate();
+                if (rows > 0)
+                    JOptionPane.showMessageDialog(this, "Record Deleted");
+                else
+                    JOptionPane.showMessageDialog(this, "ID not found");
+            }
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
         }
-        
     }
-    
-    void updateRecord(){
-        try{
-            ps=con.prepareStatement("Update  student_record set name=?,course=? where id=? ");
-            
-            ps.setString(1,(txtname.getText()));
-            ps.setString(2,(txtcourse.getText()));
-            ps.setInt(3,Integer.parseInt(txtid.getText()));
-            
-            ps.executeUpdate();
-            JOptionPane.showMessageDialog(this,"updated");
-             clearRecord();
-            
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this,"db error:"+ e.getMessage());
-        }
-        
+
+    public static void main(String[] args) {
+        new JDBC_demo();
     }
-    
-    void deleteRecord(){
-        try{
-            ps=con.prepareStatement("Delete from student_record where id=? ");      
-            ps.setInt(1,Integer.parseInt(txtid.getText()));        
-            ps.executeUpdate();
-            JOptionPane.showMessageDialog(this,"Deleted");
-             clearRecord();
-            
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this,"db error:"+ e.getMessage());
-        }
-        
-    }
-    
-    void clearRecord(){
-        txtid.setText("");
-        txtname.setText("");
-         txtcourse.setText("");
-    }
-    
-    public static void main(String[] args){
-        new StudentCRUDMySQLNew().setVisible(true);   
-    }   
 }
